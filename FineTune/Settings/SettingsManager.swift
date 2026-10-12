@@ -24,6 +24,7 @@ struct IgnoredAppInfo: Codable, Equatable {
 
 nonisolated struct AppSettings: Codable, Equatable {
     // General
+    var automationEnabled: Bool = false
     var launchAtLogin: Bool = false
     var menuBarIconStyle: MenuBarIconStyle = .default
 
@@ -65,6 +66,7 @@ nonisolated struct AppSettings: Codable, Equatable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
+        automationEnabled = try c.decodeIfPresent(Bool.self, forKey: .automationEnabled) ?? false
         launchAtLogin = try c.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? false
         menuBarIconStyle = try c.decodeIfPresent(MenuBarIconStyle.self, forKey: .menuBarIconStyle) ?? .default
         defaultNewAppVolume = try c.decodeIfPresent(Float.self, forKey: .defaultNewAppVolume) ?? 1.0
@@ -87,6 +89,7 @@ nonisolated struct AppSettings: Codable, Equatable {
 @MainActor
 final class SettingsManager {
     private var settings: Settings
+    var automationStatus = "Disabled"
     var onAppSettingsChanged: ((AppSettings, AppSettings) -> Void)?
     private var saveTask: Task<Void, Never>?
     private let settingsURL: URL
@@ -193,7 +196,7 @@ final class SettingsManager {
     }
 
     init(directory: URL? = nil) {
-        let baseDir = directory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!.appendingPathComponent("FineTune")
+        let baseDir = directory ?? FineTuneDirectories.base
         self.settingsURL = baseDir.appendingPathComponent("settings.json")
         self.settings = Settings()
         loadFromDisk()
