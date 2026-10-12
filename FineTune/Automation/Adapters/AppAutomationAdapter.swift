@@ -2,6 +2,7 @@ import Foundation
 
 @MainActor
 final class AppAutomationAdapter: AutomationAdapter {
+    let stateKey = "apps"
     let engine: AudioEngine
     let resolver: (any TargetAppResolving)?
     init(engine: AudioEngine, resolver: (any TargetAppResolving)? = nil) { self.engine = engine; self.resolver = resolver }

@@ -2,6 +2,7 @@ import Foundation
 
 @MainActor
 final class EQAutomationAdapter: AutomationAdapter {
+    let stateKey = "eq"
     let engine: AudioEngine; let apps: AppAutomationAdapter
     init(engine: AudioEngine, apps: AppAutomationAdapter) { self.engine = engine; self.apps = apps }
     var descriptors: [AutomationDescriptor] {

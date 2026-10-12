@@ -4,6 +4,7 @@ import AppKit
 
 @MainActor
 final class DeviceAutomationAdapter: AutomationAdapter {
+    let stateKey = "devices"
     let engine: AudioEngine
     init(engine: AudioEngine) { self.engine = engine }
     var descriptors: [AutomationDescriptor] {

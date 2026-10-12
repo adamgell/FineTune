@@ -3,6 +3,7 @@ import KeyboardShortcuts
 
 @MainActor
 final class PreferencesAutomationAdapter: AutomationAdapter {
+    let stateKey = "preferences"
     let engine: AudioEngine; let apps: AppAutomationAdapter
     var registry: ShortcutsRegistry?
     init(engine: AudioEngine, apps: AppAutomationAdapter) { self.engine = engine; self.apps = apps }

@@ -3,6 +3,7 @@ import Foundation
 
 @MainActor
 final class PresentationAutomationAdapter: AutomationAdapter {
+    let stateKey = "presentation"
     let engine: AudioEngine
     let popup: PopupVisibilityService
     let controller: any MenuBarPopupControlling
