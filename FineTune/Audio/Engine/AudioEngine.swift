@@ -955,6 +955,8 @@ final class AudioEngine {
         }
     }
 
+    func automationEffectiveRouting(for app: AudioApp) -> [String] { taps[app.id]?.currentDeviceUIDs ?? [] }
+
     func getDeviceUID(for app: AudioApp) -> String? {
         appDeviceRouting[app.id]
     }
