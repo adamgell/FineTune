@@ -752,10 +752,12 @@ final class AudioEngine {
     }
 
     /// Update EQ settings for an app
-    func setEQSettings(_ settings: EQSettings, for app: AudioApp) {
-        guard let tap = taps[app.id] else { return }
-        tap.updateEQSettings(settings)
+    @discardableResult
+    func setEQSettings(_ settings: EQSettings, for app: AudioApp) -> Bool {
         settingsManager.setEQSettings(settings, for: app.persistenceIdentifier)
+        guard let tap = taps[app.id] else { return false }
+        tap.updateEQSettings(settings)
+        return true
     }
 
     /// Get EQ settings for an app
@@ -2126,16 +2128,11 @@ final class AudioEngine {
     func setLockedInputDevice(_ device: AudioDevice) -> Bool {
         logger.info("User locked input device to: \(device.name)")
 
-        // Persist the choice — both current lock and preferred (user intent)
+        guard deviceVolumeMonitor.setDefaultInputDevice(device.id) else { return false }
         settingsManager.setLockedInputDeviceUID(device.uid)
         settingsManager.setPreferredInputDeviceUID(device.uid)
-
-        // Apply the change
-        if deviceVolumeMonitor.setDefaultInputDevice(device.id) {
-            inputEchoTracker.increment(device.uid)
-            return true
-        }
-        return false
+        inputEchoTracker.increment(device.uid)
+        return true
     }
 
     /// Called when an input device connects — restores locked/preferred device and guards against auto-switch.

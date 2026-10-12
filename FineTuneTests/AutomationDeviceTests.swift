@@ -5,6 +5,23 @@ import Testing
 
 @Suite("Device and routing automation") @MainActor
 struct AutomationDeviceTests {
+    @Test func failedInputSelectionDoesNotEnableLock() async {
+        let e = makeAutomationEngine()
+        let devices = e.deviceMonitor as! MockAudioDeviceMonitor
+        devices.inputDevices = [
+            .init(id: 123457, uid: "fixture-input", name: "Input", icon: nil, supportsAutoEQ: false)
+        ]
+        let lockBefore = e.settingsManager.appSettings.lockInputDevice
+        let uidBefore = e.settingsManager.lockedInputDeviceUID
+        (e.deviceVolumeMonitor as! MockDeviceVolumeProviding).inputSelectionSucceeds = false
+        let r = await AutomationService(engine: e).execute(
+            .init(
+                id: "input", method: "input.lock.set",
+                params: ["deviceUID": .string("fixture-input"), "enabled": .bool(true)]))
+        #expect(r.error?.code == .unavailable)
+        #expect(e.settingsManager.appSettings.lockInputDevice == lockBefore)
+        #expect(e.settingsManager.lockedInputDeviceUID == uidBefore)
+    }
     @Test func missingDeviceDoesNotMutate() async {
         let e = makeAutomationEngine()
         let s = AutomationService(engine: e)
@@ -91,18 +108,37 @@ struct AutomationDeviceTests {
     }
 
     @Test func inactiveMultiRoutingRemainsDiscoverable() async {
-        let e = makeAutomationEngine(); let service = AutomationService(engine: e)
-        _ = await service.execute(.init(id: "multi", method: "app.routing.set", params: ["target": .object(["appId": .string("com.test.multi")]), "mode": .string("multi"), "deviceUIDs": .array([.string("offline-a"), .string("offline-b")]), "allowOffline": .bool(true)]))
+        let e = makeAutomationEngine()
+        let service = AutomationService(engine: e)
+        _ = await service.execute(
+            .init(
+                id: "multi", method: "app.routing.set",
+                params: [
+                    "target": .object(["appId": .string("com.test.multi")]), "mode": .string("multi"),
+                    "deviceUIDs": .array([.string("offline-a"), .string("offline-b")]),
+                    "allowOffline": .bool(true),
+                ]))
         let apps = await service.execute(.init(id: "list", method: "app.list"))
-        #expect(apps.result?.object?["apps"]?.array?.contains { $0.object?["appId"] == .string("com.test.multi") } == true)
-        let routing = service.snapshot().object?["state"]?.object?["routing"]?.array?.first { $0.object?["appId"] == .string("com.test.multi") }
+        #expect(
+            apps.result?.object?["apps"]?.array?.contains { $0.object?["appId"] == .string("com.test.multi") }
+                == true)
+        let routing = service.snapshot().object?["state"]?.object?["routing"]?.array?.first {
+            $0.object?["appId"] == .string("com.test.multi")
+        }
         #expect(routing?.object?["mode"] == .string("multi"))
     }
 
     @Test func activeOfflineRoutePreservesEngineIntent() async {
         let app = automationApp(123459)
-        let e = makeAutomationEngine(apps: [app]); let service = AutomationService(engine: e)
-        let r = await service.execute(.init(id: "offline", method: "app.routing.set", params: ["target": .object(["appId": .string("com.test.player")]), "mode": .string("single"), "deviceUIDs": .array([.string("offline-speaker")]), "allowOffline": .bool(true)]))
+        let e = makeAutomationEngine(apps: [app])
+        let service = AutomationService(engine: e)
+        let r = await service.execute(
+            .init(
+                id: "offline", method: "app.routing.set",
+                params: [
+                    "target": .object(["appId": .string("com.test.player")]), "mode": .string("single"),
+                    "deviceUIDs": .array([.string("offline-speaker")]), "allowOffline": .bool(true),
+                ]))
         #expect(r.result?.object?["status"] == .string("stored"))
         #expect(e.getDeviceUID(for: app) == "offline-speaker")
     }

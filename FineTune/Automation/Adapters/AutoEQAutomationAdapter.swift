@@ -4,7 +4,11 @@ import Foundation
 final class AutoEQAutomationAdapter: AutomationAdapter {
     let stateKey = "autoeq"
     let engine: AudioEngine
-    init(engine: AudioEngine) { self.engine = engine }
+    private let loadProfile: @MainActor (String) async -> AutoEQProfile?
+    init(engine: AudioEngine, loadProfile: (@MainActor (String) async -> AutoEQProfile?)? = nil) {
+        self.engine = engine
+        self.loadProfile = loadProfile ?? { await engine.autoEQProfileManager.resolveProfile(for: $0) }
+    }
     var descriptors: [AutomationDescriptor] {
         let t = AutomationField(name: "target", type: "target", source: "outputs")
         let profile = AutomationField(name: "profileId", type: "string", source: "autoeq")
@@ -101,8 +105,11 @@ final class AutoEQAutomationAdapter: AutomationAdapter {
             }
         case "autoeq.preamp.set": engine.setAutoEQPreampEnabled(try p.bool("enabled"))
         case "autoeq.device.select", "autoeq.device.clear", "autoeq.device.setEnabled":
-            let (device, direction) = try DeviceAutomationAdapter(engine: engine).resolve(AutomationTarget.parse(params["target"]))
-            guard direction == "output", device.supportsAutoEQ else { throw AutomationError(.unavailable, "Correction-capable output required") }
+            let (device, direction) = try DeviceAutomationAdapter(engine: engine).resolve(
+                AutomationTarget.parse(params["target"]))
+            guard direction == "output", device.supportsAutoEQ else {
+                throw AutomationError(.unavailable, "Correction-capable output required")
+            }
             let uid = device.uid
             if method == "autoeq.device.clear" {
                 engine.setAutoEQProfile(for: uid, profileID: nil)
@@ -113,8 +120,13 @@ final class AutoEQAutomationAdapter: AutomationAdapter {
                 engine.setAutoEQEnabled(for: uid, enabled: try p.bool("enabled"))
             } else {
                 let id = try p.string("profileId")
-                guard await manager.resolveProfile(for: id) != nil else {
+                guard await loadProfile(id) != nil else {
                     throw AutomationError(.unavailable, "Correction profile could not load")
+                }
+                try Task.checkCancellation()
+                guard engine.outputDevices.contains(where: { $0.uid == uid && $0.supportsAutoEQ }) else {
+                    throw AutomationError(
+                        .unavailable, "Selected output disconnected while loading correction")
                 }
                 engine.setAutoEQProfile(for: uid, profileID: id)
             }

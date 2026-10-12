@@ -140,7 +140,10 @@ final class EQAutomationAdapter: AutomationAdapter {
         default: throw AutomationError(.unknownMethod, "Unknown EQ operation")
         }
         if active.isEmpty { engine.setEQSettingsForInactive(eq, identifier: id) }
-        for app in active { engine.setEQSettings(eq, for: app) }
-        return .object(["status": .string(active.isEmpty ? "stored" : "applied"), "state": try .encode(eq)])
+        let applied = active.map { engine.setEQSettings(eq, for: $0) }
+        return .object([
+            "status": .string(!applied.isEmpty && applied.allSatisfy { $0 } ? "applied" : "stored"),
+            "state": try .encode(eq),
+        ])
     }
 }

@@ -6,7 +6,7 @@ App targets use `target.appId` (FineTune's persistence ID), optionally `instance
 
 Volume uses 0–100 gain percent; boost is separately 1x/2x/3x/4x. Slider steps use FineTune's nonlinear mapping and are explicitly distinguished from gain-percent steps. EQ gains are -12 through +12 dB. All numeric inputs must be finite.
 
-`applied` means a completed control update; `stored` means persisted inactive intent; `pending` includes an operation ID and does not promise hardware success. Errors include invalid_request, unsupported_version, unknown_method, invalid_parameter, not_found, ambiguous_target, unavailable, permission_required, conflict, busy, timeout, internal_error.
+`applied` means a completed control update; `stored` means persisted intent (including active apps whose audio tap is unavailable); `pending` includes an operation ID and does not promise hardware success. Errors include invalid_request, unsupported_version, unknown_method, invalid_parameter, not_found, ambiguous_target, unavailable, permission_required, conflict, busy, timeout, internal_error.
 
 Existing URL commands retain compatibility. Their `set-volumes` range is 0–100; values up to 400 are not accepted by the current handler. Set boost independently through the new API.
 
@@ -18,6 +18,6 @@ Send newline-delimited UTF-8 JSON. Frames are at most 1 MiB. The server admits a
 
 Slow routing, DDC, profile-loading, alert-volume and Bluetooth operations return pending with operationId. Poll `operation.get` for completed/failed outcome; never replay a toggle or relative step after an uncertain disconnect. Concurrent mutations of a busy async resource return busy. Queries remain available.
 
-Mutations can include `expectedRevision`; stale values return conflict before writing. `batch.execute` accepts up to 64 structurally validated commands, executes in order, and returns per-command results. It is non-atomic; unknown/failed commands stop the batch unless continueOnError is true. Nested batches and subscription commands are rejected. A full settings reset disables automation, gates new requests immediately, and drains its response before closing.
+Mutations can include `expectedRevision`; stale values return conflict before writing. `batch.execute` accepts up to 64 structurally validated commands, returns a pending batch operation, awaits each command’s terminal result in order, and retains per-command results. It is non-atomic; unknown/failed commands stop the batch unless continueOnError is true. Nested batches and subscription commands are rejected. A full settings reset disables automation, gates new requests immediately, and drains its response before closing.
 
 Profile imports accept bounded ParametricEQ text (250 KB), not arbitrary filesystem paths. The API has no shell or generic filesystem endpoint. Device UIDs and app persistence identifiers must come from discovery; missing targets are not silently substituted.

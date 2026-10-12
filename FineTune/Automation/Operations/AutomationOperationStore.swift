@@ -43,6 +43,11 @@ final class AutomationOperationStore {
         }
         return id
     }
+    func wait(_ id: String) async throws -> AutomationValue {
+        if let task = tasks[id] { await task.value }
+        try Task.checkCancellation()
+        return try get(id)
+    }
     func get(_ id: String) throws -> AutomationValue {
         prune()
         guard let record = records[id] else {

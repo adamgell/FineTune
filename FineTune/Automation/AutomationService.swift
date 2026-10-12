@@ -94,13 +94,34 @@ final class AutomationService {
                     try request.validate()
                     return request
                 }
-                var outcomes: [AutomationValue] = []
-                for command in validated {
-                    let outcome = await execute(command)
-                    outcomes.append(try .encode(outcome))
-                    if outcome.error != nil && request.params["continueOnError"]?.bool != true { break }
+                let id = try operations.start(resource: "batch:" + UUID().uuidString) {
+                    var outcomes: [AutomationValue] = []
+                    for command in validated {
+                        try Task.checkCancellation()
+                        let outcome = await self.execute(command)
+                        var encoded = try AutomationValue.encode(outcome)
+                        var failed = outcome.error != nil
+                        if let operationId = outcome.result?.object?["operationId"]?.string,
+                            outcome.result?.object?["status"] == .string("pending")
+                        {
+                            let terminal = try await self.operations.wait(operationId)
+                            var object: [String: AutomationValue] = [
+                                "apiVersion": .number(1), "id": .string(command.id),
+                            ]
+                            if let error = terminal.object?["error"] {
+                                object["error"] = error
+                                failed = true
+                            } else {
+                                object["result"] = terminal.object?["result"] ?? .null
+                            }
+                            encoded = .object(object)
+                        }
+                        outcomes.append(encoded)
+                        if failed && request.params["continueOnError"]?.bool != true { break }
+                    }
+                    return .object(["results": .array(outcomes)])
                 }
-                result = .object(["results": .array(outcomes)])
+                result = .object(["status": .string("pending"), "operationId": .string(id)])
             default:
                 guard
                     let adapter = adapters.first(where: {

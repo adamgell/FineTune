@@ -24,8 +24,54 @@ struct AutomationOperationTests {
             ]),
         ])
         let r = await s.execute(.init(id: "1", method: "batch.execute", params: ["commands": commands]))
-        #expect(r.result?.object?["results"]?.array?.count == 2)
+        let result = try? await s.operations.wait(r.result?.object?["operationId"]?.string ?? "")
+        #expect(result?.object?["result"]?.object?["results"]?.array?.count == 2)
         #expect(e.settingsManager.getVolume(for: "com.test.player") == 0.2)
+    }
+    @Test func sceneWaitsForAsyncFailureBeforeLaterMutations() async throws {
+        let e = makeAutomationEngine()
+        let s = AutomationService(engine: e)
+        let commands: AutomationValue = .array([
+            .object([
+                "method": .string("autoeq.get"),
+                "params": .object(["profileId": .string("nonexistent-fixture")]),
+            ]),
+            .object([
+                "method": .string("app.volume.set"),
+                "params": .object([
+                    "target": .object(["appId": .string("com.test.player")]), "percent": .number(80),
+                ]),
+            ]),
+        ])
+        var r = await s.execute(.init(id: "scene", method: "batch.execute", params: ["commands": commands]))
+        if let id = r.result?.object?["operationId"]?.string {
+            for _ in 0..<100 {
+                let op = try s.operations.get(id)
+                if op.object?["status"] != .string("pending") {
+                    r = .init(id: "scene", result: op.object?["result"] ?? .null)
+                    break
+                }
+                try await Task.sleep(for: .milliseconds(10))
+            }
+        }
+        #expect(r.result?.object?["results"]?.array?.count == 1)
+        #expect(r.result?.object?["results"]?.array?.first?.object?["error"] != nil)
+        #expect(e.settingsManager.getVolume(for: "com.test.player") == nil)
+    }
+    @Test func sceneWaitsForSameResourceBeforeNextCommand() async throws {
+        let e = makeAutomationEngine(); let s = AutomationService(engine: e)
+        s.adapters.insert(DelayedSceneAdapter(), at: 0)
+        let target: AutomationValue = .object(["appId": .string("com.test.player")])
+        let commands: AutomationValue = .array([
+            .object(["method": .string("alert.volume.set"), "params": .object(["target": target])]),
+            .object(["method": .string("app.volume.set"), "params": .object(["target": target, "percent": .number(80)])])
+        ])
+        let r = await s.execute(.init(id: "scene", method: "batch.execute", params: ["commands": commands]))
+        let result = try await s.operations.wait(try #require(r.result?.object?["operationId"]?.string))
+        let rows = try #require(result.object?["result"]?.object?["results"]?.array)
+        #expect(rows.count == 2)
+        #expect(rows.allSatisfy { $0.object?["error"] == nil })
+        #expect(e.settingsManager.getVolume(for: "com.test.player") == 0.8)
     }
     @Test func asyncFailureCanBeQueried() async throws {
         let s = AutomationService(engine: makeAutomationEngine())
@@ -88,4 +134,14 @@ struct AutomationOperationTests {
         #expect(e.settingsManager.getVolume(for: "com.test.player") == 0.3)
     }
 
+}
+
+@MainActor private final class DelayedSceneAdapter: AutomationAdapter {
+    let stateKey = "sceneFixture"
+    let descriptors: [AutomationDescriptor] = [.init(method: "alert.volume.set", title: "Fixture", fields: [])]
+    func snapshot() -> AutomationValue { .null }
+    func execute(method: String, params: [String: AutomationValue]) async throws -> AutomationValue {
+        try await Task.sleep(for: .milliseconds(25))
+        return .object(["status": .string("applied")])
+    }
 }

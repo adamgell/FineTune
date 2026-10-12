@@ -178,7 +178,9 @@ final class DeviceAutomationAdapter: AutomationAdapter {
                 guard let device = engine.inputDevices.first(where: { $0.uid == uid }) else {
                     throw AutomationError(.unavailable, "Input device is disconnected")
                 }
-                engine.setLockedInputDevice(device)
+                guard engine.setLockedInputDevice(device) else {
+                    throw AutomationError(.unavailable, "Input selection failed; lock unchanged")
+                }
             }
             var value = settings.appSettings
             value.lockInputDevice = enabled

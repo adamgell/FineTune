@@ -5,6 +5,18 @@ import Testing
 
 @Suite("EQ automation") @MainActor
 struct AutomationEQTests {
+    @Test func activeAppWithoutTapStoresEQIntent() async {
+        let e = makeAutomationEngine(apps: [automationApp(123460)])
+        let r = await AutomationService(engine: e).execute(
+            .init(
+                id: "eq", method: "app.eq.band.set",
+                params: [
+                    "target": .object(["appId": .string("com.test.player")]), "band": .number(0),
+                    "gainDB": .number(6),
+                ]))
+        #expect(e.settingsManager.getEQSettings(for: "com.test.player").bandGains[0] == 6)
+        #expect(r.result?.object?["status"] == .string("stored"))
+    }
     @Test func patchPreservesOtherBands() async {
         let e = makeAutomationEngine()
         let s = AutomationService(engine: e)
