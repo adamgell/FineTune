@@ -19,7 +19,7 @@ final class AutomationService {
     init(engine: AudioEngine, resolver: (any TargetAppResolving)? = nil) {
         self.engine = engine
         let adapter = AppAutomationAdapter(engine: engine, resolver: resolver)
-        self.appAdapter = adapter; self.adapters = [adapter, DeviceAutomationAdapter(engine: engine), RoutingAutomationAdapter(engine: engine, apps: adapter)]
+        self.appAdapter = adapter; self.adapters = [adapter, DeviceAutomationAdapter(engine: engine), RoutingAutomationAdapter(engine: engine, apps: adapter), EQAutomationAdapter(engine: engine, apps: adapter), PreferencesAutomationAdapter(engine: engine, apps: adapter), AutoEQAutomationAdapter(engine: engine)]
     }
     func snapshot() -> AutomationValue {
         let data = AutomationValue.object(Dictionary(uniqueKeysWithValues: adapters.enumerated().map { ("\($0.offset)", $0.element.snapshot()) }))

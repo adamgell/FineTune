@@ -399,6 +399,13 @@ final class AudioEngine {
                 self?.handleDefaultInputDeviceChanged(newDefaultInputUID)
             }
         }
+        settingsManager.onAppSettingsChanged = { [weak self] old, new in self?.applySettingsEffects(old: old, new: new) }
+    }
+
+    func applySettingsEffects(old: AppSettings, new: AppSettings) {
+        if old.lockInputDevice != new.lockInputDevice && new.lockInputDevice { handleInputLockEnabled() }
+        if old.loudnessCompensationEnabled != new.loudnessCompensationEnabled { setLoudnessCompensationEnabled(new.loudnessCompensationEnabled) }
+        if old.loudnessEqualizationEnabled != new.loudnessEqualizationEnabled { setLoudnessEqualizationEnabled(new.loudnessEqualizationEnabled) }
     }
 
     var apps: [AudioApp] {

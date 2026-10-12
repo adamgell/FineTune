@@ -79,7 +79,6 @@ final class DeviceAutomationAdapter: AutomationAdapter {
                 engine.setLockedInputDevice(device)
             }
             var value = settings.appSettings; value.lockInputDevice = enabled; settings.appSettings = value
-            if enabled { engine.handleInputLockEnabled() }
             return .object(["status": .string("applied")])
         }
         if method.hasPrefix("alert.") {

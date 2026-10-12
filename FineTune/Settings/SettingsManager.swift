@@ -87,6 +87,7 @@ nonisolated struct AppSettings: Codable, Equatable {
 @MainActor
 final class SettingsManager {
     private var settings: Settings
+    var onAppSettingsChanged: ((AppSettings, AppSettings) -> Void)?
     private var saveTask: Task<Void, Never>?
     private let settingsURL: URL
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "FineTune", category: "SettingsManager")
@@ -808,7 +809,9 @@ final class SettingsManager {
         if newSettings.launchAtLogin != settings.appSettings.launchAtLogin {
             setLaunchAtLogin(newSettings.launchAtLogin)
         }
+        let oldSettings = settings.appSettings
         settings.appSettings = newSettings
+        onAppSettingsChanged?(oldSettings, newSettings)
         scheduleSave()
     }
 
