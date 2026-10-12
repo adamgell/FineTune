@@ -1,4 +1,5 @@
 import Testing
+
 @testable import FineTune
 
 @MainActor final class AutomationTestPopupController: MenuBarPopupControlling {
@@ -9,8 +10,10 @@ import Testing
 @Suite("Presentation automation") @MainActor
 struct AutomationPresentationTests {
     @Test func showIsIdempotentAndEditTabShareState() async throws {
-        let engine = makeAutomationEngine(); let visibility = PopupVisibilityService()
-        let adapter = PresentationAutomationAdapter(engine: engine, popup: visibility, controller: AutomationTestPopupController(visibility))
+        let engine = makeAutomationEngine()
+        let visibility = PopupVisibilityService()
+        let adapter = PresentationAutomationAdapter(
+            engine: engine, popup: visibility, controller: AutomationTestPopupController(visibility))
         _ = try await adapter.execute(method: "ui.popup.show", params: [:])
         _ = try await adapter.execute(method: "ui.popup.show", params: [:])
         #expect(visibility.isVisible)

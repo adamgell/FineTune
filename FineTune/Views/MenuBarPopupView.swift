@@ -8,6 +8,7 @@ struct MenuBarPopupView: View {
     @Bindable var deviceVolumeMonitor: DeviceVolumeMonitor
     @ObservedObject var updateManager: UpdateManager
 
+    var automationPresentation: PresentationAutomationAdapter? = nil
     let permission: AudioRecordingPermission
 
     /// Accessibility trust state — forwarded to the Settings window for the
@@ -143,6 +144,8 @@ struct MenuBarPopupView: View {
         .preferredColorScheme(audioEngine.settingsManager.appSettings.appearance.swiftUIColorScheme)
         .environment(\.appearancePreference, audioEngine.settingsManager.appSettings.appearance)
         .onAppear {
+            automationPresentation?.openSettings = { openSettings() }
+            if popupVisibility.isEditingDevicePriority { applyDevicePriorityEdit(true) }
             updateSortedDevices()
             updateSortedInputDevices()
             pairedDevices = audioEngine.bluetoothDeviceMonitor.pairedDevices
@@ -177,6 +180,7 @@ struct MenuBarPopupView: View {
             syncNavOrder()
         }
         .onChange(of: popupVisibility.isEditingDevicePriority) { _, editing in
+            applyDevicePriorityEdit(editing)
             if editing {
                 selectedRow = nil
                 hasKeyboardEngaged = false
@@ -1018,25 +1022,19 @@ struct MenuBarPopupView: View {
     // MARK: - Device Priority Edit
 
     private func toggleDevicePriorityEdit() {
-        if popupVisibility.isEditingDevicePriority {
-            // Exiting edit mode: persist to the correct priority list and
-            // collapse any expanded device detail (the inline body only lives
-            // inside edit mode, so it must collapse when the mode does).
-            persistEditableOrder()
-            popupVisibility.isEditingDevicePriority = false
-            popupVisibility.expandedDeviceUID = nil
-            if wasEditingInputDevices {
-                updateSortedInputDevices()
-            } else {
-                updateSortedDevices()
-            }
-        } else {
-            // Entering edit mode: use the full (unfiltered) device list so hidden devices are also shown.
+        popupVisibility.isEditingDevicePriority.toggle()
+    }
+
+    private func applyDevicePriorityEdit(_ editing: Bool) {
+        if editing {
             wasEditingInputDevices = popupVisibility.showingInputDevices
             editableDeviceOrder = popupVisibility.showingInputDevices
                 ? audioEngine.prioritySortedInputDevices
                 : audioEngine.prioritySortedOutputDevices
-            popupVisibility.isEditingDevicePriority = true
+        } else {
+            persistEditableOrder()
+            popupVisibility.expandedDeviceUID = nil
+            if wasEditingInputDevices { updateSortedInputDevices() } else { updateSortedDevices() }
         }
     }
 
@@ -1059,9 +1057,7 @@ struct MenuBarPopupView: View {
     /// Exits edit mode, saving the current order. Called on edge cases like device changes.
     private func exitEditModeSaving() {
         guard popupVisibility.isEditingDevicePriority else { return }
-        persistEditableOrder()
         popupVisibility.isEditingDevicePriority = false
-        popupVisibility.expandedDeviceUID = nil
     }
 
     /// Merges device list changes into `editableDeviceOrder` while preserving the user's reordering.

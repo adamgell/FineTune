@@ -93,6 +93,7 @@ final class SettingsManager {
     var onAppSettingsChanged: ((AppSettings, AppSettings) -> Void)?
     private var saveTask: Task<Void, Never>?
     private let settingsURL: URL
+    private let loginItem: any LoginItemManaging
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "FineTune", category: "SettingsManager")
 
     struct Settings: Codable {
@@ -195,7 +196,8 @@ final class SettingsManager {
         }
     }
 
-    init(directory: URL? = nil) {
+    init(directory: URL? = nil, loginItem: any LoginItemManaging = SystemLoginItemManager()) {
+        self.loginItem = loginItem
         let baseDir = directory ?? FineTuneDirectories.base
         self.settingsURL = baseDir.appendingPathComponent("settings.json")
         self.settings = Settings()
@@ -212,7 +214,7 @@ final class SettingsManager {
     }
 
     var automationKnownAppIdentifiers: Set<String> {
-        Set(settings.appVolumes.keys).union(settings.appMutes.keys).union(settings.appBoosts.keys).union(settings.pinnedApps).union(settings.ignoredApps).union(settings.appDeviceRouting.keys).union(settings.appEQSettings.keys)
+        Set(settings.appVolumes.keys).union(settings.appMutes.keys).union(settings.appBoosts.keys).union(settings.pinnedApps).union(settings.ignoredApps).union(settings.appDeviceRouting.keys).union(settings.appEQSettings.keys).union(settings.appDeviceSelectionMode.keys).union(settings.appSelectedDeviceUIDs.keys)
     }
 
     // MARK: - Per-App Boost
@@ -821,10 +823,10 @@ final class SettingsManager {
     private func setLaunchAtLogin(_ enabled: Bool) {
         do {
             if enabled {
-                try SMAppService.mainApp.register()
+                try loginItem.setEnabled(true)
                 logger.info("Registered for launch at login")
             } else {
-                try SMAppService.mainApp.unregister()
+                try loginItem.setEnabled(false)
                 logger.info("Unregistered from launch at login")
             }
         } catch {
@@ -834,13 +836,14 @@ final class SettingsManager {
 
     /// Returns the actual launch at login status from the system
     var isLaunchAtLoginEnabled: Bool {
-        SMAppService.mainApp.status == .enabled
+        loginItem.isEnabled
     }
 
     // MARK: - Reset All Settings
 
     /// Resets all per-app settings and app-wide settings to defaults
     func resetAllSettings() {
+        let oldAppSettings = settings.appSettings
         settings.appVolumes.removeAll()
         settings.appBoosts.removeAll()
         settings.appDeviceRouting.removeAll()
@@ -874,9 +877,10 @@ final class SettingsManager {
         settings.userEQPresets.removeAll()
 
         // Also unregister from launch at login
-        try? SMAppService.mainApp.unregister()
+        try? loginItem.setEnabled(false)
 
         scheduleSave()
+        onAppSettingsChanged?(oldAppSettings, settings.appSettings)
         logger.info("Reset all settings to defaults")
     }
 

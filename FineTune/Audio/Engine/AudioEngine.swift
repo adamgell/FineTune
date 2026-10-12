@@ -2122,7 +2122,8 @@ final class AudioEngine {
 
     /// Called when user explicitly selects an input device (via FineTune UI).
     /// Persists the choice and applies the change.
-    func setLockedInputDevice(_ device: AudioDevice) {
+    @discardableResult
+    func setLockedInputDevice(_ device: AudioDevice) -> Bool {
         logger.info("User locked input device to: \(device.name)")
 
         // Persist the choice — both current lock and preferred (user intent)
@@ -2132,7 +2133,9 @@ final class AudioEngine {
         // Apply the change
         if deviceVolumeMonitor.setDefaultInputDevice(device.id) {
             inputEchoTracker.increment(device.uid)
+            return true
         }
+        return false
     }
 
     /// Called when an input device connects — restores locked/preferred device and guards against auto-switch.

@@ -15,7 +15,9 @@ final class AutomationStateBroker {
         let stream = AsyncStream<AutomationValue>(bufferingPolicy: .bufferingNewest(1)) { continuation in
             continuations[id] = continuation
             continuation.yield(event("state.snapshot"))
-            continuation.onTermination = { [weak self] _ in Task { @MainActor in self?.continuations[id] = nil } }
+            continuation.onTermination = { [weak self] _ in
+                Task { @MainActor in self?.continuations[id] = nil }
+            }
         }
         if timer == nil {
             trackChanges()
@@ -23,7 +25,10 @@ final class AutomationStateBroker {
                 while !Task.isCancelled {
                     do { try await Task.sleep(for: .seconds(1)) } catch { break }
                     guard let self else { break }
-                    if self.continuations.isEmpty { self.timer = nil; break }
+                    if self.continuations.isEmpty {
+                        self.timer = nil
+                        break
+                    }
                     self.reconcile()
                 }
             }
@@ -32,7 +37,8 @@ final class AutomationStateBroker {
     }
     private func event(_ name: String) -> AutomationValue {
         var snapshot = service.snapshot().object ?? [:]
-        snapshot["apiVersion"] = .number(1); snapshot["event"] = .string(name)
+        snapshot["apiVersion"] = .number(1)
+        snapshot["event"] = .string(name)
         return .object(snapshot)
     }
     func reconcile() {
@@ -44,7 +50,9 @@ final class AutomationStateBroker {
     }
     private func trackChanges() {
         guard !continuations.isEmpty else { return }
-        withObservationTracking { _ = service.snapshot() } onChange: { [weak self] in
+        withObservationTracking {
+            _ = service.snapshot()
+        } onChange: { [weak self] in
             Task { @MainActor in self?.scheduleReconcile() }
         }
     }
@@ -53,11 +61,16 @@ final class AutomationStateBroker {
         coalescer = Task { [weak self] in
             do { try await Task.sleep(for: .milliseconds(50)) } catch { return }
             guard let self else { return }
-            self.coalescer = nil; self.reconcile(); self.trackChanges()
+            self.coalescer = nil
+            self.reconcile()
+            self.trackChanges()
         }
     }
     func stop() {
-        timer?.cancel(); timer = nil; coalescer?.cancel(); coalescer = nil
+        timer?.cancel()
+        timer = nil
+        coalescer?.cancel()
+        coalescer = nil
         for continuation in continuations.values { continuation.finish() }
         continuations.removeAll()
     }

@@ -8,6 +8,7 @@ nonisolated struct AutomationField: Codable, Sendable {
     var maximum: Double? = nil
     var choices: [String]? = nil
     var source: String? = nil
+    var ordered = false
 }
 nonisolated struct AutomationDescriptor: Codable, Sendable {
     let method: String

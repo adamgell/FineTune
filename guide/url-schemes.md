@@ -49,7 +49,7 @@ open "finetune://set-mute?app=com.spotify.client&muted=true&app=com.apple.Music&
 open "finetune://set-volumes?app=com.spotify.client&volume=30&app=com.apple.systemuiserver&volume=0"
 ```
 
-**Gaming setup** — Boost a game and lower Discord:
+**Gaming setup** — Set a game’s volume and lower Discord:
 
 ```bash
 open "finetune://set-volumes?app=com.game.example&volume=100&app=com.hnc.Discord&volume=40"

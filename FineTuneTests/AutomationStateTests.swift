@@ -1,10 +1,12 @@
 import Testing
+
 @testable import FineTune
 
 @Suite("Automation state") @MainActor
 struct AutomationStateTests {
     @Test func subscriptionBeginsWithSnapshotAndTracksUIWrites() async throws {
-        let e = makeAutomationEngine(); let s = AutomationService(engine: e)
+        let e = makeAutomationEngine()
+        let s = AutomationService(engine: e)
         let broker = AutomationStateBroker(service: s)
         var stream = broker.subscribe().makeAsyncIterator()
         let initial = try #require(await stream.next())

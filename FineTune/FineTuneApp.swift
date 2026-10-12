@@ -88,6 +88,7 @@ struct FineTuneApp: App {
             audioEngine: audioEngine,
             deviceVolumeMonitor: audioEngine.deviceVolumeMonitor as! DeviceVolumeMonitor,
             updateManager: updateManager,
+            automationPresentation: automationRuntime.service.adapters.first { $0 is PresentationAutomationAdapter } as? PresentationAutomationAdapter,
             permission: audioEngine.permission,
             accessibility: accessibility,
             mediaKeyStatus: mediaKeyStatus,
