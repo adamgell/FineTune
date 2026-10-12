@@ -207,6 +207,10 @@ final class SettingsManager {
         scheduleSave()
     }
 
+    var automationKnownAppIdentifiers: Set<String> {
+        Set(settings.appVolumes.keys).union(settings.appMutes.keys).union(settings.appBoosts.keys).union(settings.pinnedApps).union(settings.ignoredApps).union(settings.appDeviceRouting.keys).union(settings.appEQSettings.keys)
+    }
+
     // MARK: - Per-App Boost
 
     func getBoost(for identifier: String) -> BoostLevel? {
