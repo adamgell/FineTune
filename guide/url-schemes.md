@@ -6,7 +6,7 @@ Control FineTune from Terminal, shell scripts, [Shortcuts](https://support.apple
 
 | Action | Format | Description |
 |--------|--------|-------------|
-| Set volume | `finetune://set-volumes?app=BUNDLE_ID&volume=PERCENT` | Set volume (0–100, or up to 400 with boost) |
+| Set volume | `finetune://set-volumes?app=BUNDLE_ID&volume=PERCENT` | Set volume (0–100; boost is configured separately) |
 | Step volume | `finetune://step-volume?app=BUNDLE_ID&direction=up` | Nudge volume up or down by ~5% |
 | Set mute | `finetune://set-mute?app=BUNDLE_ID&muted=true` | Mute or unmute an app |
 | Toggle mute | `finetune://toggle-mute?app=BUNDLE_ID` | Toggle mute state |
@@ -52,7 +52,7 @@ open "finetune://set-volumes?app=com.spotify.client&volume=30&app=com.apple.syst
 **Gaming setup** — Boost a game and lower Discord:
 
 ```bash
-open "finetune://set-volumes?app=com.game.example&volume=400&app=com.hnc.Discord&volume=40"
+open "finetune://set-volumes?app=com.game.example&volume=100&app=com.hnc.Discord&volume=40"
 ```
 
 These commands work in Terminal, shell scripts, Automator, Raycast script commands, macOS Shortcuts (using "Open URL"), and any other tool that can open URLs.
